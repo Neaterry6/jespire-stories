@@ -1,6 +1,6 @@
 export const ROLE_BY_EMAIL = {
-  'akewusholaabdulbakri101@gmail.com': 'owner',
-  'jennypandy49@gmail.com': 'admin',
+  'jennypandy49@gmail.com': 'owner',
+  'akewusholaabdulbakri101@gmail.com': 'admin',
 } as const
 
 export type JespireRole = 'owner' | 'admin' | 'user'

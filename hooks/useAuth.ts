@@ -6,8 +6,8 @@ import { auth, db, googleProvider } from '@/lib/firebase'
 import { getJespireRole, isStaffEmail } from '@/lib/roles'
 
 const FIXED_USERNAMES: Record<string,string> = {
-  'akewusholaabdulbakri101@gmail.com': 'brokenvzn',
   'jennypandy49@gmail.com': 'jespirepen',
+  'akewusholaabdulbakri101@gmail.com': 'brokenvzn',
 }
 
 export const getFixedUsername = (email?: string | null) => FIXED_USERNAMES[(email || '').trim().toLowerCase()] || ''
@@ -20,7 +20,7 @@ const syncUser = async (user: User) => {
 
   await setDoc(ref, {
     email: user.email || '',
-    displayName: user.displayName || 'Reader',
+    displayName: user.displayName || (role === 'owner' ? 'Jespire' : role === 'admin' ? 'brokenvzn' : 'Reader'),
     photoURL: user.photoURL || '',
     role,
     ...(fixedUsername ? { username: fixedUsername } : {}),
@@ -29,15 +29,16 @@ const syncUser = async (user: User) => {
   }, { merge: true })
 
   await setDoc(doc(db, 'chatMembers', user.uid), {
-    email: user.email || '', displayName: user.displayName || 'Reader', photoURL: user.photoURL || '', role,
+    email: user.email || '', displayName: user.displayName || (role === 'owner' ? 'Jespire' : role === 'admin' ? 'brokenvzn' : 'Reader'), photoURL: user.photoURL || '', role,
     ...(fixedUsername ? { username: fixedUsername } : {}), lastSeenAt: serverTimestamp(),
   }, { merge: true })
   return user
 }
 
-export const OWNER_EMAILS_LIST = ['akewusholaabdulbakri101@gmail.com','jennypandy49@gmail.com']
-export const isOwnerEmail = isStaffEmail
-export { getJespireRole }
+export const OWNER_EMAILS_LIST = ['jennypandy49@gmail.com']
+export const STAFF_EMAILS_LIST = ['jennypandy49@gmail.com','akewusholaabdulbakri101@gmail.com']
+export const isOwnerEmail = (email?: string | null) => getJespireRole(email) === 'owner'
+export { getJespireRole, isStaffEmail }
 
 export async function signInGoogle() { return syncUser((await signInWithPopup(auth, googleProvider)).user) }
 export async function signInEmail(email: string, password: string) { return syncUser((await signInWithEmailAndPassword(auth, email.trim(), password)).user) }
