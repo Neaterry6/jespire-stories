@@ -1,0 +1,11 @@
+{
+  "name":"Jespire",
+  "short_name":"Jespire",
+  "description":"Stories that stay.",
+  "start_url":"/feed",
+  "display":"standalone",
+  "background_color":"#07101f",
+  "theme_color":"#2563eb",
+  "orientation":"portrait-primary",
+  "icons":[{"src":"/jespire-logo.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+}
