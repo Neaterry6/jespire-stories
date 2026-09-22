@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 520" role="img" aria-labelledby="title desc">
+  <title id="title">Anime-inspired readers enjoying a book</title>
+  <desc id="desc">An original soft blue animated illustration of two readers sharing a book.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#dbeafe"/><stop offset="1" stop-color="#eff6ff"/></linearGradient>
+    <linearGradient id="book" x1="0" x2="1"><stop stop-color="#2563eb"/><stop offset="1" stop-color="#60a5fa"/></linearGradient>
+    <style>
+      .float{animation:float 4s ease-in-out infinite}.float2{animation:float 5s ease-in-out -1.2s infinite}.blink{animation:blink 3s ease-in-out infinite}.page{transform-origin:380px 338px;animation:page 2.8s ease-in-out infinite}
+      @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}@keyframes blink{0%,42%,48%,100%{opacity:1}45%{opacity:.18}}@keyframes page{0%,100%{transform:rotate(0)}50%{transform:rotate(-2deg)}}
+    </style>
+  </defs>
+  <rect width="760" height="520" rx="48" fill="url(#bg)"/>
+  <circle class="blink" cx="112" cy="92" r="5" fill="#2563eb"/><circle class="blink" cx="646" cy="122" r="4" fill="#60a5fa"/>
+  <path d="M85 430c90-42 500-42 590 0" fill="none" stroke="#bfdbfe" stroke-width="8" stroke-linecap="round"/>
+  <g class="float2">
+    <circle cx="278" cy="190" r="62" fill="#f8d5c0"/><path d="M221 178c8-59 91-76 121-13-15-8-30-9-45-2-20 9-46 15-76 15Z" fill="#26334a"/>
+    <circle cx="255" cy="196" r="5" fill="#172033"/><circle cx="301" cy="196" r="5" fill="#172033"/><path d="M268 219c9 7 19 7 28 0" fill="none" stroke="#172033" stroke-width="4" stroke-linecap="round"/>
+    <path d="M214 274c20-27 104-29 128 0l27 116H184l30-116Z" fill="#3b82f6"/><path d="M225 288c-20 33-31 61-44 93M331 288c18 31 29 62 43 93" fill="none" stroke="#f8d5c0" stroke-width="20" stroke-linecap="round"/>
+  </g>
+  <g class="float">
+    <circle cx="484" cy="190" r="62" fill="#d9b49c"/><path d="M425 177c7-63 94-74 121-8-20-11-41-10-57 2-18 13-39 13-64 6Z" fill="#5b4053"/>
+    <circle cx="461" cy="196" r="5" fill="#172033"/><circle cx="507" cy="196" r="5" fill="#172033"/><path d="M474 219c9 7 19 7 28 0" fill="none" stroke="#172033" stroke-width="4" stroke-linecap="round"/>
+    <path d="M420 274c23-28 104-29 129 0l29 116H389l31-116Z" fill="#172554"/><path d="M431 289c-16 31-28 61-40 92M538 289c18 31 29 61 42 92" fill="none" stroke="#d9b49c" stroke-width="20" stroke-linecap="round"/>
+  </g>
+  <g class="page">
+    <path d="M365 318c-42-23-82-25-119-9v78c39-16 79-14 119 10Z" fill="#fff" stroke="#2563eb" stroke-width="6" stroke-linejoin="round"/>
+    <path d="M365 318c42-23 82-25 119-9v78c-39-16-79-14-119 10Z" fill="#f8fbff" stroke="#2563eb" stroke-width="6" stroke-linejoin="round"/>
+    <path d="M267 335h68M267 352h74M397 335h68M397 352h74" stroke="#93c5fd" stroke-width="6" stroke-linecap="round"/>
+    <path d="M365 318v79" stroke="#2563eb" stroke-width="5"/>
+  </g>
+  <g class="blink"><path d="M165 110l7 15 15 7-15 7-7 15-7-15-15-7 15-7Z" fill="#60a5fa"/><path d="M585 72l6 13 13 6-13 6-6 13-6-13-13-6 13-6Z" fill="#2563eb"/></g>
+</svg>
