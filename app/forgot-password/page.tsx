@@ -15,7 +15,7 @@ export default function ForgotPassword() {
     e.preventDefault()
     setBusy(true)
     try {
-      await resetPassword(email)
+      await resetPassword(email.trim())
       setSent(true)
       toast.success('Reset email sent. Check your inbox.')
     } catch (e: any) {
