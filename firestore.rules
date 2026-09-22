@@ -2,15 +2,46 @@ rules_version = '2';
 service cloud.firestore {
  match /databases/{database}/documents {
   function signedIn(){ return request.auth != null; }
-  function admin(){ return signedIn() && request.auth.token.email in ['akewusholaabdulbakri101@gmail.com','jennypandy49@gmail.com']; }
-  match /users/{uid} { allow read: if signedIn() && (request.auth.uid == uid || admin()); allow create: if signedIn() && request.auth.uid == uid; allow update: if signedIn() && request.auth.uid == uid; }
-  match /stories/{id} { allow read: if resource.data.status == 'published' || admin(); allow create,update,delete: if admin(); }
-  match /likes/{id} { allow read: if signedIn(); allow create: if signedIn() && request.resource.data.userId == request.auth.uid; allow delete: if signedIn() && resource.data.userId == request.auth.uid; }
-  match /bookmarks/{id} { allow read: if signedIn(); allow create: if signedIn() && request.resource.data.userId == request.auth.uid; allow delete: if signedIn() && resource.data.userId == request.auth.uid; }
-  match /story_analytics/{id} { allow read: if admin(); allow create: if signedIn() && request.resource.data.userId == request.auth.uid; }
-  match /comments/{id} { allow read: if signedIn(); allow create: if signedIn() && request.resource.data.userId == request.auth.uid; allow delete: if signedIn() && (resource.data.userId == request.auth.uid || admin()); }
-  match /messages/{id} { allow read,create: if signedIn(); allow update,delete: if signedIn() && (resource.data.userId == request.auth.uid || admin()); }
-  match /chatMembers/{uid} { allow read: if signedIn(); allow create: if signedIn() && request.auth.uid == uid; }
-  match /notifications/{id} { allow read,update: if signedIn() && resource.data.userId == request.auth.uid; allow create: if admin(); }
+  function owner(){ return signedIn() && request.auth.token.email in ['akewusholaabdulbakri101@gmail.com','jennypandy49@gmail.com']; }
+  match /users/{uid} {
+    allow read: if signedIn() && (request.auth.uid == uid || owner());
+    allow create: if signedIn() && request.auth.uid == uid;
+    allow update: if signedIn() && request.auth.uid == uid;
+  }
+  match /stories/{id} {
+    allow read: if resource.data.status == 'published' || owner();
+    allow create,update,delete: if owner();
+  }
+  match /likes/{id} {
+    allow read: if signedIn();
+    allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+    allow delete: if signedIn() && resource.data.userId == request.auth.uid;
+  }
+  match /bookmarks/{id} {
+    allow read: if signedIn();
+    allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+    allow delete: if signedIn() && resource.data.userId == request.auth.uid;
+  }
+  match /story_analytics/{id} {
+    allow read: if owner();
+    allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+  }
+  match /comments/{id} {
+    allow read: if signedIn();
+    allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+    allow delete: if signedIn() && (resource.data.userId == request.auth.uid || owner());
+  }
+  match /messages/{id} {
+    allow read,create: if signedIn();
+    allow update,delete: if signedIn() && (resource.data.userId == request.auth.uid || owner());
+  }
+  match /chatMembers/{uid} {
+    allow read: if signedIn();
+    allow create: if signedIn() && request.auth.uid == uid;
+  }
+  match /notifications/{id} {
+    allow read,update: if signedIn() && resource.data.userId == request.auth.uid;
+    allow create: if owner();
+  }
  }
 }
