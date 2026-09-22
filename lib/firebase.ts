@@ -13,35 +13,45 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 }
 
-// Firebase Auth/Firestore/Storage are browser services in this app.
-// Do not initialize them while Next.js is prerendering pages on Vercel.
-// This prevents a missing/unavailable build-time env value from crashing
-// every route that imports the client Firebase module.
+// Auth, Firestore and Storage are browser-side services in this app.
+// Defer Firebase initialization until the browser so Next.js can prerender
+// pages on Vercel without trying to initialize Firebase with an unavailable
+// build-time client key.
 let app: FirebaseApp | null = null
-let auth: Auth | null = null
-let db: Firestore | null = null
-let storage: FirebaseStorage | null = null
-let googleProvider: GoogleAuthProvider | null = null
+let authInstance: Auth | null = null
+let dbInstance: Firestore | null = null
+let storageInstance: FirebaseStorage | null = null
+let googleProviderInstance: GoogleAuthProvider | null = null
 
 if (typeof window !== 'undefined') {
-  const missing = Object.entries(firebaseConfig)
-    .filter(([key, value]) => key !== 'measurementId' && !value)
-    .map(([key]) => key)
+  const requiredKeys = [
+    'NEXT_PUBLIC_FIREBASE_API_KEY',
+    'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
+    'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
+    'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET',
+    'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
+    'NEXT_PUBLIC_FIREBASE_APP_ID',
+  ] as const
+
+  const missing = requiredKeys.filter((key) => !process.env[key])
 
   if (missing.length) {
     throw new Error(
-      `Firebase configuration is missing in the Vercel client environment: ${missing.join(', ')}`
+      `Firebase configuration is missing from the Vercel client environment: ${missing.join(', ')}`
     )
   }
 
   app = getApps().length ? getApp() : initializeApp(firebaseConfig)
-  auth = getAuth(app)
-  db = getFirestore(app)
-  storage = getStorage(app)
-  googleProvider = new GoogleAuthProvider()
+  authInstance = getAuth(app)
+  dbInstance = getFirestore(app)
+  storageInstance = getStorage(app)
+  googleProviderInstance = new GoogleAuthProvider()
 }
 
-// These are only consumed by client-side auth/data code. Keeping the
-// non-null assertions here preserves the existing imports and API while
-// avoiding Firebase initialization during server prerendering.
-export { auth, db, storage, googleProvider }
+// The module is imported by client components only. The assertions keep the
+// existing Firebase API/types intact while the actual initialization remains
+// browser-only.
+export const auth = authInstance as Auth
+export const db = dbInstance as Firestore
+export const storage = storageInstance as FirebaseStorage
+export const googleProvider = googleProviderInstance as GoogleAuthProvider
