@@ -1,105 +1,37 @@
 'use client'
-
-import { useEffect, useState } from 'react'
+import { ChangeEvent, useEffect, useState } from 'react'
 import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, serverTimestamp, updateDoc } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
+import { getDownloadURL, ref as storageRef, uploadBytes } from 'firebase/storage'
+import { db, storage } from '@/lib/firebase'
 import { useAuth } from '@/hooks/useAuth'
 import { getJespireRole, isStaffEmail } from '@/lib/roles'
 import Link from 'next/link'
-import { BookOpen, Eye, Heart, Users, Plus, Trash2, Send, FileText, ShieldCheck } from 'lucide-react'
+import { BarChart3, BookOpen, Eye, FileText, Heart, ImagePlus, Link2, Plus, ShieldCheck, Trash2, Upload, Users, X } from 'lucide-react'
 import { toast } from 'sonner'
 
-type Story = {
-  id: string
-  title?: string
-  synopsis?: string
-  content?: string
-  genre?: string
-  coverUrl?: string
-  status?: string
-  createdAt?: { seconds?: number } | null
-}
+type Story={id:string;title?:string;synopsis?:string;content?:string;genre?:string;coverUrl?:string;pdfUrl?:string;status?:string;createdAt?:{seconds?:number}|null}
+type Reader={id:string;email?:string;displayName?:string;username?:string;role?:string}
 
-export default function Admin() {
-  const { user, loading } = useAuth()
-  const [stats, setStats] = useState({ users: 0, stories: 0, views: 0, likes: 0 })
-  const [stories, setStories] = useState<Story[]>([])
-  const [open, setOpen] = useState(false)
-  const [title, setTitle] = useState('')
-  const [synopsis, setSynopsis] = useState('')
-  const [content, setContent] = useState('')
-  const [genre, setGenre] = useState('Fiction')
-  const [coverUrl, setCoverUrl] = useState('')
-  const [busy, setBusy] = useState(false)
-
-  const role = getJespireRole(user?.email)
-  const staff = isStaffEmail(user?.email)
-
-  useEffect(() => {
-    if (!user || !staff) return
-
-    const unsubscribe = onSnapshot(collection(db, 'stories'), (snapshot) => {
-      const nextStories: Story[] = snapshot.docs.map((item) => ({ id: item.id, ...item.data() })) as Story[]
-      nextStories.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
-      setStories(nextStories)
-    })
-
-    return unsubscribe
-  }, [user, staff])
-
-  useEffect(() => {
-    if (!user || !staff) return
-    Promise.all([
-      getDocs(collection(db, 'users')),
-      getDocs(collection(db, 'stories')),
-      getDocs(collection(db, 'story_analytics')),
-      getDocs(collection(db, 'likes')),
-    ]).then(([users, storyDocs, analytics, likes]) => {
-      setStats({ users: users.size, stories: storyDocs.size, views: analytics.size, likes: likes.size })
-    }).catch(() => toast.error('Could not load dashboard stats.'))
-  }, [user, staff, stories.length])
-
-  async function publish(event: React.FormEvent) {
-    event.preventDefault()
-    if (!user || !staff) return
-    setBusy(true)
-    try {
-      await addDoc(collection(db, 'stories'), {
-        title: title.trim(), synopsis: synopsis.trim(), content: content.trim(), genre,
-        coverUrl: coverUrl.trim() || 'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=1000&q=80',
-        tags: [], authorId: user.uid, authorName: user.displayName || 'Jespire',
-        likesCount: 0, bookmarksCount: 0, viewsCount: 0, status: 'published', createdAt: serverTimestamp(),
-      })
-      toast.success('Story published to the feed.')
-      setTitle(''); setSynopsis(''); setContent(''); setCoverUrl(''); setOpen(false)
-    } catch (error: any) {
-      toast.error(error?.message || 'Could not publish story.')
-    } finally { setBusy(false) }
-  }
-
-  async function toggle(story: Story) {
-    try {
-      const nextStatus = story.status === 'published' ? 'draft' : 'published'
-      await updateDoc(doc(db, 'stories', story.id), { status: nextStatus })
-      toast.success(nextStatus === 'published' ? 'Published.' : 'Moved to draft.')
-    } catch (error: any) { toast.error(error?.message || 'Could not update story.') }
-  }
-
-  async function remove(story: Story) {
-    if (!confirm(`Delete “${story.title || 'this story'}”?`)) return
-    try { await deleteDoc(doc(db, 'stories', story.id)); toast.success('Story deleted.') }
-    catch (error: any) { toast.error(error?.message || 'Could not delete story.') }
-  }
-
-  if (loading) return <div className="mx-auto max-w-6xl px-5 py-20">Loading…</div>
-  if (!user || !staff) return <div className="mx-auto max-w-xl px-5 py-24 text-center"><ShieldCheck className="mx-auto text-blue-600"/><p className="mt-4 text-xs uppercase tracking-[.25em] text-blue-600">Jespire Studio</p><h1 className="mt-3 font-serif text-4xl">Staff access only.</h1><Link href="/feed" className="mt-7 inline-block rounded-full bg-blue-600 px-6 py-3 text-white">Back to feed</Link></div>
-
-  const cards = [['Users', stats.users, Users], ['Stories', stats.stories, BookOpen], ['Views', stats.views, Eye], ['Likes', stats.likes, Heart]] as const
-
-  return <div className="mx-auto max-w-6xl px-5 py-10">
-    <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs uppercase tracking-[.28em] text-blue-600">Jespire Studio · {role}</p><h1 className="mt-2 font-serif text-5xl">Dashboard</h1><p className="mt-2 text-sm text-slate-500">Write. Publish. Watch it grow.</p></div><button onClick={() => setOpen(!open)} className="inline-flex items-center justify-center gap-2 rounded-full bg-blue-600 px-5 py-3 text-sm font-medium text-white shadow-lg shadow-blue-600/15"><Plus size={17}/> New story</button></div>
-    <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{cards.map(([label, value, Icon]) => <div key={label} className="rounded-3xl border border-blue-100 bg-white p-6 dark:border-slate-800 dark:bg-slate-950"><div className="flex items-center justify-between"><span className="text-sm text-slate-500">{label}</span><Icon size={18} className="text-blue-600"/></div><p className="mt-4 font-serif text-4xl text-slate-950 dark:text-white">{value}</p></div>)}</div>
-    {open && <form onSubmit={publish} className="mt-8 rounded-[2rem] border border-blue-100 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950"><div className="flex items-center gap-3"><FileText className="text-blue-600"/><h2 className="font-serif text-2xl">New story</h2></div><div className="mt-6 grid gap-3 sm:grid-cols-2"><input required value={title} onChange={e=>setTitle(e.target.value)} placeholder="Title" className="field"/><select value={genre} onChange={e=>setGenre(e.target.value)} className="field"><option>Fiction</option><option>Romance</option><option>Drama</option><option>Poetry</option><option>Anime</option></select><input value={coverUrl} onChange={e=>setCoverUrl(e.target.value)} placeholder="Cover image URL (optional)" className="field sm:col-span-2"/><textarea required value={synopsis} onChange={e=>setSynopsis(e.target.value)} placeholder="Short synopsis" rows={2} className="field sm:col-span-2"/><textarea required value={content} onChange={e=>setContent(e.target.value)} placeholder="Write your story here…" rows={10} className="field sm:col-span-2"/></div><button disabled={busy} className="mt-4 inline-flex items-center gap-2 rounded-full bg-blue-600 px-5 py-3 text-sm font-medium text-white disabled:opacity-50"><Send size={16}/>{busy?'Publishing…':'Publish to feed'}</button></form>}
-    <section className="mt-8 overflow-hidden rounded-[2rem] border border-blue-100 bg-white dark:border-slate-800 dark:bg-slate-950"><div className="border-b border-blue-100 px-6 py-5 dark:border-slate-800"><h2 className="font-serif text-2xl">Stories</h2></div>{stories.length ? stories.map(story=><div key={story.id} className="flex items-center gap-4 border-b border-blue-50 px-6 py-4 last:border-0 dark:border-slate-800"><img src={story.coverUrl} alt="" className="h-14 w-11 rounded-lg object-cover"/><div className="min-w-0 flex-1"><h3 className="truncate font-medium">{story.title}</h3><p className="text-xs text-slate-400">{story.genre} · {story.status}</p></div><button onClick={()=>toggle(story)} className="hidden rounded-full bg-blue-50 px-3 py-2 text-xs text-blue-700 sm:block">{story.status==='published'?'Unpublish':'Publish'}</button><button onClick={()=>remove(story)} className="rounded-full p-2 text-slate-400 hover:text-red-500"><Trash2 size={16}/></button></div>):<div className="px-6 py-12 text-center text-sm text-slate-400">No stories yet.</div>}</section>
-  </div>
+export default function Admin(){
+ const {user,loading}=useAuth();const [role,setRole]=useState('');const [stats,setStats]=useState({users:0,stories:0,views:0,likes:0});const [stories,setStories]=useState<Story[]>([]);const [readers,setReaders]=useState<Reader[]>([]);const [open,setOpen]=useState(false);const [title,setTitle]=useState('');const [synopsis,setSynopsis]=useState('');const [content,setContent]=useState('');const [genre,setGenre]=useState('Fiction');const [coverUrl,setCoverUrl]=useState('');const [pdfUrl,setPdfUrl]=useState('');const [busy,setBusy]=useState(false);const [tab,setTab]=useState<'overview'|'stories'|'readers'>('overview')
+ const staff=role==='owner'||role==='admin'
+ useEffect(()=>{if(!user)return;const fixed=getJespireRole(user.email);if(isStaffEmail(user.email))setRole(fixed);getDocs(doc(db,'users',user.uid) as any).catch(()=>{});getDocs(collection(db,'users')).then(s=>{const me=s.docs.find(d=>d.id===user.uid)?.data();setRole(fixed!=='user'?fixed:(me?.role||'user'));setReaders(s.docs.map(d=>({id:d.id,...d.data()} as Reader)))})},[user])
+ useEffect(()=>{if(!user||!staff)return;const unsub=onSnapshot(collection(db,'stories'),s=>{const next=s.docs.map(d=>({id:d.id,...d.data()} as Story));next.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));setStories(next)});return unsub},[user,staff])
+ useEffect(()=>{if(!user||!staff)return;Promise.all([getDocs(collection(db,'users')),getDocs(collection(db,'stories')),getDocs(collection(db,'story_analytics')),getDocs(collection(db,'likes'))]).then(([u,s,a,l])=>setStats({users:u.size,stories:s.size,views:a.size,likes:l.size})).catch(()=>toast.error('Could not load analytics.'))},[user,staff,stories.length])
+ async function uploadCover(e:ChangeEvent<HTMLInputElement>){const file=e.target.files?.[0];e.target.value='';if(!file)return;if(!file.type.startsWith('image/'))return toast.error('Choose an image for the cover.');if(file.size>8*1024*1024)return toast.error('Cover must be under 8 MB.');setBusy(true);try{const snap=await uploadBytes(storageRef(storage,`covers/${user!.uid}/${Date.now()}-${file.name.replace(/[^a-z0-9._-]/gi,'_')}`),file,{contentType:file.type});setCoverUrl(await getDownloadURL(snap.ref));toast.success('Cover uploaded.')}catch(e:any){toast.error(e?.message||'Cover upload failed.')}finally{setBusy(false)}}
+ async function uploadPdf(e:ChangeEvent<HTMLInputElement>){const file=e.target.files?.[0];e.target.value='';if(!file)return;if(file.type!=='application/pdf')return toast.error('Choose a PDF.');if(file.size>10*1024*1024)return toast.error('PDF must be under 10 MB.');setBusy(true);try{const snap=await uploadBytes(storageRef(storage,`chat-media/${user!.uid}/story-${Date.now()}-${file.name.replace(/[^a-z0-9._-]/gi,'_')}`),file,{contentType:'application/pdf'});setPdfUrl(await getDownloadURL(snap.ref));toast.success('PDF attached.')}catch(e:any){toast.error(e?.message||'PDF upload failed.')}finally{setBusy(false)}}
+ async function publish(e:React.FormEvent){e.preventDefault();if(!user||!staff)return;setBusy(true);try{await addDoc(collection(db,'stories'),{title:title.trim(),synopsis:synopsis.trim(),content:content.trim(),genre,coverUrl:coverUrl.trim()||'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=1000&q=80',pdfUrl:pdfUrl.trim(),tags:[],authorId:user.uid,authorName:user.displayName||'Jespire',likesCount:0,bookmarksCount:0,viewsCount:0,status:'published',createdAt:serverTimestamp()});toast.success('Story published to the feed.');setTitle('');setSynopsis('');setContent('');setCoverUrl('');setPdfUrl('');setOpen(false)}catch(e:any){toast.error(e?.message||'Could not publish story.')}finally{setBusy(false)}}
+ async function toggle(s:Story){try{await updateDoc(doc(db,'stories',s.id),{status:s.status==='published'?'draft':'published'});toast.success(s.status==='published'?'Moved to draft.':'Published.')}catch(e:any){toast.error(e?.message||'Could not update story.')}}
+ async function remove(s:Story){if(!confirm(`Delete “${s.title||'this story'}”?`))return;try{await deleteDoc(doc(db,'stories',s.id));toast.success('Story deleted.')}catch(e:any){toast.error(e?.message||'Could not delete story.')}}
+ async function promote(r:Reader){if(r.id===user?.uid)return;try{await updateDoc(doc(db,'users',r.id),{role:r.role==='admin'?'user':'admin'});toast.success(r.role==='admin'?`${r.displayName||r.email} is now a reader.`:`${r.displayName||r.email} is now an admin.`)}catch(e:any){toast.error(e?.message||'Could not change role.')}}
+ if(loading)return <div className="mx-auto max-w-6xl px-5 py-20">Loading…</div>
+ if(!user||!staff)return <div className="mx-auto max-w-xl px-5 py-24 text-center"><ShieldCheck className="mx-auto text-blue-600"/><p className="mt-4 text-xs uppercase tracking-[.25em] text-blue-600">Jespire Studio</p><h1 className="mt-3 font-serif text-4xl">Staff access only.</h1><Link href="/feed" className="mt-7 inline-block rounded-full bg-blue-600 px-6 py-3 text-white">Back to feed</Link></div>
+ const cards=[['Readers',stats.users,Users],['Stories',stats.stories,BookOpen],['Views',stats.views,Eye],['Likes',stats.likes,Heart]] as const
+ return <main className="mx-auto max-w-6xl px-4 pb-24 pt-7 sm:px-5 sm:pt-10"><div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-semibold uppercase tracking-[.28em] text-blue-600">Jespire Studio · {role}</p><h1 className="mt-2 font-serif text-5xl text-slate-950 dark:text-white">Dashboard</h1><p className="mt-2 text-sm text-slate-500">Publish, manage readers and watch the room grow.</p></div><button onClick={()=>setOpen(!open)} className="inline-flex items-center justify-center gap-2 rounded-full bg-blue-600 px-5 py-3 text-sm font-medium text-white shadow-lg shadow-blue-600/15"><Plus size={17}/> New story</button></div>
+ <div className="mt-7 flex gap-2 overflow-x-auto"><button onClick={()=>setTab('overview')} className={`rounded-full px-4 py-2 text-sm ${tab==='overview'?'bg-blue-600 text-white':'bg-blue-50 text-slate-600 dark:bg-slate-900 dark:text-slate-300'}`}><BarChart3 className="mr-1 inline" size={15}/>Analytics</button><button onClick={()=>setTab('stories')} className={`rounded-full px-4 py-2 text-sm ${tab==='stories'?'bg-blue-600 text-white':'bg-blue-50 text-slate-600 dark:bg-slate-900 dark:text-slate-300'}`}><BookOpen className="mr-1 inline" size={15}/>Stories</button><button onClick={()=>setTab('readers')} className={`rounded-full px-4 py-2 text-sm ${tab==='readers'?'bg-blue-600 text-white':'bg-blue-50 text-slate-600 dark:bg-slate-900 dark:text-slate-300'}`}><Users className="mr-1 inline" size={15}/>Readers</button></div>
+ <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{cards.map(([label,value,Icon])=><div key={label} className="rounded-3xl border border-blue-100 bg-white p-5 dark:border-slate-800 dark:bg-slate-950"><div className="flex items-center justify-between"><span className="text-sm text-slate-500">{label}</span><Icon size={18} className="text-blue-600"/></div><p className="mt-4 font-serif text-4xl text-slate-950 dark:text-white">{value}</p></div>)}</div>
+ {open&&<form onSubmit={publish} className="mt-7 rounded-[2rem] border border-blue-100 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950"><div className="flex items-center justify-between"><div className="flex items-center gap-3"><FileText className="text-blue-600"/><h2 className="font-serif text-2xl text-slate-950 dark:text-white">Publish to feed</h2></div><button type="button" onClick={()=>setOpen(false)}><X/></button></div><div className="mt-6 grid gap-3 sm:grid-cols-2"><input required value={title} onChange={e=>setTitle(e.target.value)} placeholder="Story title" className="field"/><select value={genre} onChange={e=>setGenre(e.target.value)} className="field"><option>Fiction</option><option>Romance</option><option>Drama</option><option>Poetry</option><option>Anime</option><option>School</option></select><textarea required value={synopsis} onChange={e=>setSynopsis(e.target.value)} placeholder="Short synopsis" rows={3} className="field sm:col-span-2"/><textarea required value={content} onChange={e=>setContent(e.target.value)} placeholder="Write the story here… HTML paragraphs are supported." rows={12} className="field font-mono text-sm sm:col-span-2"/><div className="flex flex-wrap gap-2 sm:col-span-2"><label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-blue-100 px-4 py-3 text-sm text-slate-600 dark:border-slate-800 dark:text-slate-300"><ImagePlus size={17} className="text-blue-600"/> {coverUrl?'Cover ready':'Upload cover'}<input type="file" hidden accept="image/*" onChange={uploadCover}/></label>{coverUrl&&<a href={coverUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl bg-blue-50 px-4 py-3 text-sm text-blue-700"><Link2 size={16}/>View cover</a>}<label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-blue-100 px-4 py-3 text-sm text-slate-600 dark:border-slate-800 dark:text-slate-300"><Upload size={17} className="text-blue-600"/> {pdfUrl?'PDF ready':'Attach PDF'}<input type="file" hidden accept="application/pdf" onChange={uploadPdf}/></label></div></div><button disabled={busy} className="mt-4 inline-flex items-center gap-2 rounded-full bg-blue-600 px-5 py-3 text-sm font-medium text-white disabled:opacity-50">{busy?'Working…':'Publish story'}</button></form>}
+ {tab==='readers'&&<section className="mt-7 overflow-hidden rounded-[2rem] border border-blue-100 bg-white dark:border-slate-800 dark:bg-slate-950"><div className="border-b border-blue-100 px-6 py-5 dark:border-slate-800"><h2 className="font-serif text-2xl text-slate-950 dark:text-white">Reader roles</h2><p className="mt-1 text-sm text-slate-500">Promote trusted readers to admins so they can publish.</p></div>{readers.map(r=><div key={r.id} className="flex items-center gap-3 border-b border-blue-50 px-5 py-4 last:border-0 dark:border-slate-800"><div className="grid h-10 w-10 place-items-center rounded-full bg-blue-100 font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-200">{(r.displayName||r.email||'R').charAt(0).toUpperCase()}</div><div className="min-w-0 flex-1"><p className="truncate font-medium text-slate-900 dark:text-white">{r.displayName||'Reader'}</p><p className="truncate text-xs text-slate-400">{r.username?`@${r.username}`:r.email}</p></div><span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-900">{r.role||'user'}</span>{r.id!==user.uid&&<button onClick={()=>promote(r)} className="rounded-full bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-200">{r.role==='admin'?'Demote':'Promote'}</button>}</div>)}{!readers.length&&<div className="px-6 py-12 text-center text-sm text-slate-400">No readers yet.</div>}</section>}
+ {tab!=='readers'&&<section className="mt-7 overflow-hidden rounded-[2rem] border border-blue-100 bg-white dark:border-slate-800 dark:bg-slate-950"><div className="border-b border-blue-100 px-6 py-5 dark:border-slate-800"><h2 className="font-serif text-2xl text-slate-950 dark:text-white">{tab==='overview'?'Recent stories':'Stories'}</h2></div>{stories.length?stories.map(s=><div key={s.id} className="flex items-center gap-4 border-b border-blue-50 px-5 py-4 last:border-0 dark:border-slate-800"><img src={s.coverUrl} alt="" className="h-14 w-11 rounded-lg object-cover"/><div className="min-w-0 flex-1"><h3 className="truncate font-medium text-slate-900 dark:text-white">{s.title}</h3><p className="text-xs text-slate-400">{s.genre} · {s.status}</p></div><button onClick={()=>toggle(s)} className="hidden rounded-full bg-blue-50 px-3 py-2 text-xs text-blue-700 sm:block">{s.status==='published'?'Unpublish':'Publish'}</button><button onClick={()=>remove(s)} className="rounded-full p-2 text-slate-400 hover:text-red-500"><Trash2 size={16}/></button></div>):<div className="px-6 py-12 text-center text-sm text-slate-400">No stories yet.</div>}</section>}
+ </main>
 }
