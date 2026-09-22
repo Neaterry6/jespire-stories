@@ -8,6 +8,7 @@ html{scroll-behavior:smooth}
 body{margin:0;background:#f7faff;color:#0f172a;font-family:var(--font-inter),sans-serif;transition:background-color .25s ease,color .25s ease}
 html.dark body{background:#070d19;color:#f8fafc}
 html.dark{color-scheme:dark}
+.jespire-logo{display:block}.dark .jespire-logo{content:url('/jespire-logo-dark.svg')}
 .paper{background:rgba(255,255,255,.82);backdrop-filter:blur(18px);border:1px solid rgba(37,99,235,.12)}
 .dark .paper{background:rgba(15,23,42,.9);border-color:rgba(96,165,250,.2);color:#f8fafc}
 .field{width:100%;border-radius:1rem;border:1px solid rgba(15,23,42,.1);background:#fff;padding:.85rem 1rem;outline:none;transition:.2s;color:#0f172a}.field:focus{border-color:#2563eb;box-shadow:0 0 0 4px rgba(37,99,235,.1)}
