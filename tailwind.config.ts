@@ -1,0 +1,3 @@
+import type { Config } from 'tailwindcss'
+const config: Config = { darkMode: ['class'], content: ['./app/**/*.{js,ts,jsx,tsx,mdx}','./components/**/*.{js,ts,jsx,tsx,mdx}'], theme: { extend: { colors: { cream:'#FFF8F0', blush:'#FFD6E0', ink:'#171313' }, fontFamily:{ serif:['var(--font-playfair)'], sans:['var(--font-inter)'] }, boxShadow:{ soft:'0 20px 60px rgba(67,42,43,.10)' } } }, plugins:[] }
+export default config
