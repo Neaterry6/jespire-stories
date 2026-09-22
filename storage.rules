@@ -2,7 +2,7 @@ rules_version = '2';
 service firebase.storage {
  match /b/{bucket}/o {
   function signedIn(){ return request.auth != null; }
-  function staff(){ return signedIn() && request.auth.token.email in ['akewusholaabdulbakri101@gmail.com','jennypandy49@gmail.com']; }
+  function staff(){ return signedIn() && (request.auth.token.email in ['akewusholaabdulbakri101@gmail.com','jennypandy49@gmail.com'] || firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role in ['admin','owner']); }
 
   match /covers/{allPaths=**} {
     allow read: if true;
@@ -11,8 +11,7 @@ service firebase.storage {
 
   match /chat-media/{uid}/{allPaths=**} {
     allow read: if signedIn();
-    allow write: if signedIn() && request.auth.uid == uid
-      && request.resource.size < 10 * 1024 * 1024;
+    allow write: if signedIn() && request.auth.uid == uid && request.resource.size < 10 * 1024 * 1024;
   }
  }
 }
