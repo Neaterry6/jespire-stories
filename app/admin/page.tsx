@@ -1,10 +1,11 @@
 'use client'
 import { ChangeEvent, useEffect, useState } from 'react'
-import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, serverTimestamp, updateDoc } from 'firebase/firestore'
+import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore'
 import { getDownloadURL, ref as storageRef, uploadBytes } from 'firebase/storage'
 import { db, storage } from '@/lib/firebase'
 import { getFixedUsername, useAuth } from '@/hooks/useAuth'
 import { getJespireRole } from '@/lib/roles'
+import { BROKENVZN_STORY } from '@/lib/brokenvzn-story'
 import Link from 'next/link'
 import { BarChart3, BookOpen, Eye, FileText, Hash, Heart, ImagePlus, Link2, Plus, ShieldCheck, Trash2, Upload, Users, X } from 'lucide-react'
 import { toast } from 'sonner'
@@ -18,6 +19,7 @@ export default function Admin(){
  useEffect(()=>{if(!user)return;const fixed=getJespireRole(user.email);getDocs(collection(db,'users')).then(s=>{const me=s.docs.find(d=>d.id===user.uid)?.data();setRole(fixed!=='user'?fixed:(me?.role||'user'));setReaders(s.docs.map(d=>({id:d.id,...d.data()} as Reader)))}).catch(()=>setRole(fixed))},[user])
  useEffect(()=>{if(!user||!staff)return;const unsub=onSnapshot(collection(db,'stories'),s=>{const next=s.docs.map(d=>({id:d.id,...d.data()} as Story));next.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));setStories(next)});return unsub},[user,staff])
  useEffect(()=>{if(!user||!staff)return;Promise.all([getDocs(collection(db,'users')),getDocs(collection(db,'stories')),getDocs(collection(db,'story_analytics')),getDocs(collection(db,'likes'))]).then(([u,s,a,l])=>setStats({users:u.size,stories:s.size,views:a.size,likes:l.size})).catch(()=>toast.error('Could not load analytics.'))},[user,staff,stories.length])
+ useEffect(()=>{if(!user||role!=='admin'||getFixedUsername(user.email)!=='brokenvzn')return;setDoc(doc(db,'stories',BROKENVZN_STORY.id),{...BROKENVZN_STORY,authorId:user.uid,authorName:'brokenvzn',authorUsername:'brokenvzn',authorRole:'admin',status:'published',likesCount:0,bookmarksCount:0,viewsCount:0,createdAt:serverTimestamp()},{merge:true}).catch(()=>{})},[user,role])
  async function uploadCover(e:ChangeEvent<HTMLInputElement>){const file=e.target.files?.[0];e.target.value='';if(!file)return;if(!file.type.startsWith('image/'))return toast.error('Choose an image for the cover.');if(file.size>8*1024*1024)return toast.error('Cover must be under 8 MB.');setBusy(true);try{const snap=await uploadBytes(storageRef(storage,`covers/${user!.uid}/${Date.now()}-${file.name.replace(/[^a-z0-9._-]/gi,'_')}`),file,{contentType:file.type});setCoverUrl(await getDownloadURL(snap.ref));toast.success('Cover uploaded.')}catch(e:any){toast.error(e?.message||'Cover upload failed.')}finally{setBusy(false)}}
  async function uploadPdf(e:ChangeEvent<HTMLInputElement>){const file=e.target.files?.[0];e.target.value='';if(!file)return;if(file.type!=='application/pdf')return toast.error('Choose a PDF.');if(file.size>10*1024*1024)return toast.error('PDF must be under 10 MB.');setBusy(true);try{const snap=await uploadBytes(storageRef(storage,`story-pdfs/${user!.uid}/${Date.now()}-${file.name.replace(/[^a-z0-9._-]/gi,'_')}`),file,{contentType:'application/pdf'});setPdfUrl(await getDownloadURL(snap.ref));toast.success('PDF attached.')}catch(e:any){toast.error(e?.message||'PDF upload failed.')}finally{setBusy(false)}}
  function parseTags(value:string){return Array.from(new Set(value.split(/[\s,]+/).map(x=>x.trim()).filter(Boolean).map(x=>x.startsWith('#')?x:`#${x}`).map(x=>x.toLowerCase())))}
