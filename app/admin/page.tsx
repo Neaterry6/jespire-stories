@@ -10,7 +10,7 @@ import Link from 'next/link'
 import { BarChart3, BookOpen, Eye, FileText, Hash, Heart, ImagePlus, Link2, Plus, ShieldCheck, Trash2, Upload, Users, X } from 'lucide-react'
 import { toast } from 'sonner'
 
-type Story={id:string;title?:string;synopsis?:string;content?:string;genre?:string;coverUrl?:string;pdfUrl?:string;status?:string;createdAt?:{seconds?:number}|null;tags?:string[];authorUsername?:string;chapters?:any[]}
+type Story={id:string;title?:string;synopsis?:string;content?:string;genre?:string;coverUrl?:string;pdfUrl?:string;status?:string;createdAt?:{seconds?:number}|null;tags?:string[];authorUsername?:string;authorName?:string;chapters?:any[]}
 type Reader={id:string;email?:string;displayName?:string;username?:string;role?:string}
 const chapterExample='[{"number":1,"title":"Chapter title","episodes":[{"number":1,"title":"Episode title","content":"<p>Episode text...</p>"}]}]'
 export default function Admin(){
