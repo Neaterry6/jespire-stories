@@ -19,13 +19,13 @@ let dbInstance: Firestore | undefined
 let storageInstance: FirebaseStorage | undefined
 let googleProviderInstance: GoogleAuthProvider | undefined
 
-function getFirebaseApp() {
+function getFirebaseApp(): FirebaseApp {
   if (typeof window === 'undefined') {
-    throw new Error('Firebase client services must only be initialized in the browser.')
+    throw new Error('Firebase client services cannot be used during server rendering.')
   }
 
   if (!firebaseConfig.apiKey || !firebaseConfig.authDomain || !firebaseConfig.projectId || !firebaseConfig.appId) {
-    throw new Error('Firebase configuration is missing. Add the NEXT_PUBLIC_FIREBASE_* variables to the Vercel environment used by this deployment.')
+    throw new Error('Firebase configuration is missing. Add the NEXT_PUBLIC_FIREBASE_* variables to the Vercel Preview/Production environment.')
   }
 
   if (!app) {
@@ -35,25 +35,44 @@ function getFirebaseApp() {
   return app
 }
 
-export function getFirebaseAuth() {
+export function getFirebaseAuth(): Auth {
   return (authInstance ??= getAuth(getFirebaseApp()))
 }
 
-export function getFirebaseDb() {
+export function getFirebaseDb(): Firestore {
   return (dbInstance ??= getFirestore(getFirebaseApp()))
 }
 
-export function getFirebaseStorage() {
+export function getFirebaseStorage(): FirebaseStorage {
   return (storageInstance ??= getStorage(getFirebaseApp()))
 }
 
-export function getGoogleProvider() {
+export function getGoogleProvider(): GoogleAuthProvider {
   return (googleProviderInstance ??= new GoogleAuthProvider())
 }
 
-// Client-only compatibility exports. The getters above are the preferred API,
-// while these keep existing client components working without server prerender initialization.
-export const auth = undefined as unknown as Auth
-export const db = undefined as unknown as Firestore
-export const storage = undefined as unknown as FirebaseStorage
-export const googleProvider = undefined as unknown as GoogleAuthProvider
+function lazyService<T extends object>(getService: () => T): T {
+  return new Proxy({} as T, {
+    get(_target, property, receiver) {
+      return Reflect.get(getService(), property, receiver)
+    },
+    has(_target, property) {
+      return Reflect.has(getService(), property)
+    },
+    ownKeys() {
+      return Reflect.ownKeys(getService())
+    },
+    getOwnPropertyDescriptor(_target, property) {
+      const descriptor = Reflect.getOwnPropertyDescriptor(getService(), property)
+      return descriptor || { configurable: true, enumerable: true }
+    },
+  })
+}
+
+// Firebase is intentionally lazy here. Next.js prerenders client components on the
+// server, where NEXT_PUBLIC_* values may not be available and Firebase must not initialize.
+// Existing imports can continue using auth/db/storage without changing every page.
+export const auth = lazyService(getFirebaseAuth)
+export const db = lazyService(getFirebaseDb)
+export const storage = lazyService(getFirebaseStorage)
+export const googleProvider = lazyService(getGoogleProvider)
